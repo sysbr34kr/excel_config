@@ -1,6 +1,7 @@
 import configparser
 import pandas as pd
 import os
+import locale
 from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl import Workbook
 from openpyxl.worksheet.datavalidation import DataValidation
@@ -9,6 +10,8 @@ from styles import (
     FONT_ARIAL_12, BOLD_FONT, HEADER_FILL, FOOTER_FILL,
     LIGHT_GRAY_FILL, WHITE_FILL, HEADER_BORDER, FOOTER_BORDER, VERTICAL_BORDER
 )
+
+locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 def process_quotes():
     current_directory = os.getcwd()
@@ -64,14 +67,14 @@ def process_quotes():
         dv.add(ws.cell(row=row, column=3))
 
     column_widths = {
-        'A': 71.43,
-        'B': 12.14,
-        'C': 13.57,
-        'D': 8.57,
-        'E': 10,
-        'F': 10,
-        'G': 10,
-        'H': 12.14
+        'A': 71.43, # Nome
+        'B': 12.14, # CEP
+        'C': 13.57, # Modalidade
+        'D': 8.57,  # Peso
+        'E': 10,    # Altura
+        'F': 10,    # Largura
+        'G': 10,    # Comprimento
+        'H': 12.14  # Valor
     }
     for col, width in column_widths.items():
         ws.column_dimensions[col].width = width
@@ -85,7 +88,7 @@ def process_quotes():
         valor_cell = ws.cell(row=row, column=8)
 
         peso_cell.value = (
-            f'=IF({modalidade_cell.coordinate}="PAC Min.", "1.0 Kg", ' 
+            f'=IF({modalidade_cell.coordinate}="PAC Min.", "1,0 Kg", ' 
             f'IF({modalidade_cell.coordinate}="RETIRA", "-", ""))'
         )
         altura_cell.value = (
@@ -107,13 +110,13 @@ def process_quotes():
             f'=IF({modalidade_cell.coordinate}="RETIRA", "-", ' 
             f'IF(AND({modalidade_cell.coordinate}="IM", ' 
             f'ISNUMBER(MATCH(LEFT({peso_cell.coordinate}, FIND(" ", {peso_cell.coordinate})-1), ' 
-            f'{{"0.3","0.9","2.0"}}, 0))), ' 
+            f'{{"0,3","0,9","2,0"}}, 0))), ' 
             f'VLOOKUP(LEFT({peso_cell.coordinate}, FIND(" ", {peso_cell.coordinate})-1), ' 
-            f'{{"0.3",{im_values["0.3Kg"]};"0.9",{im_values["0.9Kg"]};"2.0",{im_values["2.0Kg"]}}}, 2, FALSE), ""))'
+            f'{{"0,3",{im_values["0.3Kg"]};"0,9",{im_values["0.9Kg"]};"2,0",{im_values["2.0Kg"]}}}, 2, FALSE), ""))'
         )
 
         valor_cell.number_format = '"R$" #,##0.00'
-        peso_cell.number_format = '0.0 "Kg"'
+        peso_cell.number_format = '#,0.0 "Kg"'
         altura_cell.number_format = '##0 "cm"'
         largura_cell.number_format = '##0 "cm"'
         comprimento_cell.number_format = '##0 "cm"'

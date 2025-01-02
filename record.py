@@ -40,9 +40,9 @@ def process_record():
     .str.replace(',', '', regex=False)
     .astype(float) / 100
     )
-    arrematantes_df['Arrematação'] = arrematantes_df['Arrematação'] * (1 + (comissao / 100))
     arrematantes_df['Arrematação'] = pd.to_numeric(arrematantes_df['Arrematação'], errors='coerce')
-    
+    arrematantes_df['Arrematação'] = arrematantes_df['Arrematação'] * (1 + (comissao / 100))
+     
     new_df = pd.DataFrame({
       'Nome': cotacoes_df['Nome'],
       'Cartela': arrematantes_df['Cartela'],
