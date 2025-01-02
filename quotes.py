@@ -1,7 +1,6 @@
 import configparser
 import pandas as pd
 import os
-import locale
 from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl import Workbook
 from openpyxl.worksheet.datavalidation import DataValidation
@@ -10,8 +9,6 @@ from styles import (
     FONT_ARIAL_12, BOLD_FONT, HEADER_FILL, FOOTER_FILL,
     LIGHT_GRAY_FILL, WHITE_FILL, HEADER_BORDER, FOOTER_BORDER, VERTICAL_BORDER
 )
-
-locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 def process_quotes():
     current_directory = os.getcwd()
