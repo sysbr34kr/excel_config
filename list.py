@@ -46,7 +46,7 @@ def generate_list():
             f.write(f"{SEPARATOR}\n\n")
             f.write(f"{col_a}\n")
             f.write("-----\n")
-            f.write(f"O valor da sua arremação é: R$ {col_g_formatted}\n")
+            f.write(f"O valor da sua arrematação é: R$ {col_g_formatted}\n")
             f.write(f"O valor do frete por {col_e} é: R$ {col_f_formatted}\n")
             f.write(f"O total a pagar é: R$ {col_h_formatted}\n\n")
 
