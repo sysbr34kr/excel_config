@@ -35,7 +35,12 @@ def process_quotes():
     df = df.iloc[:, [1, 6]]
     df.columns = ['Nome', 'CEP']
     df['Nome'] = df['Nome'].str.upper()
-    df['CEP'] = df['CEP'].astype(str).str.replace("-", "", regex=False).apply(lambda x: x.zfill(8))
+    df['CEP'] = (
+    df['CEP']
+    .astype(str)
+    .str.replace(r'\D', '', regex=True)
+    .str.zfill(8)
+    )
     df = pd.DataFrame({
         'Nome': df['Nome'],
         'CEP': df['CEP'],

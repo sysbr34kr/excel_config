@@ -27,45 +27,72 @@ def process_record():
     comissao = float(config['Comissao']['comissao'])
     seguro = float(config['Seguro']['seguro'])
 
-    arrematantes_df = pd.read_html(arrematantes_file, header=1)[0]
+    arrematantes_df = pd.read_html(
+        arrematantes_file,
+        header=1,
+        decimal=',',
+        thousands='.'
+    )[0]
     cotacoes_df = pd.read_excel(cotacoes_file)
     cotacoes_df = cotacoes_df.dropna(subset=['Nome', 'CEP', 'Modalidade', 'Valor']).reset_index(drop=True)
     arrematantes_df = arrematantes_df.iloc[:, [0, 5, 11]]
     arrematantes_df.columns = ['Cartela', 'UF', 'Arrematação']
     cotacoes_df['CEP'] = cotacoes_df['CEP'].astype(int).astype(str).apply(lambda x: x.zfill(8))
     cotacoes_df['Valor'] = pd.to_numeric(cotacoes_df['Valor'], errors='coerce')
+    
+    #Debug
+    if 'Arrematação' not in arrematantes_df.columns:
+        raise ValueError("Expected column 'Arrematação' not found in arrematantes file")
+    print(arrematantes_df['Arrematação'].head(10))
+    print(arrematantes_df['Arrematação'].dtype)
+    print(arrematantes_df['Arrematação'].apply(type).value_counts())
+    """    
     arrematantes_df['Arrematação'] = (
     arrematantes_df['Arrematação']
+    .astype(str)
     .str.replace('.', '', regex=False)
     .str.replace(',', '', regex=False)
+    .replace('nan', pd.NA)
     .astype(float) / 100
     )
+    """
     arrematantes_df['Arrematação'] = pd.to_numeric(arrematantes_df['Arrematação'], errors='coerce')
     arrematantes_df['Arrematação'] = arrematantes_df['Arrematação'] * (1 + (comissao / 100))
-     
+
+    print(arrematantes_df.dtypes)
+
     new_df = pd.DataFrame({
-      'Nome': cotacoes_df['Nome'],
-      'Cartela': arrematantes_df['Cartela'],
-      'CEP': cotacoes_df['CEP'],
-      'UF': arrematantes_df['UF'],
-      'Modalidade': cotacoes_df['Modalidade'],
-      'Valor Env.': cotacoes_df.apply(
-        lambda row: '-' if row['Modalidade'] == 'RETIRA' else row['Valor'] + (pacote_extra if row['Modalidade'] == 'PAC' else 2 * pacote_extra if row['Modalidade'] == '2x PAC' else 0),
-        axis=1
+        'Nome': cotacoes_df['Nome'],
+        'Cartela': arrematantes_df['Cartela'],
+        'CEP': cotacoes_df['CEP'],
+        'UF': arrematantes_df['UF'],
+        'Modalidade': cotacoes_df['Modalidade'],
+        'Valor Env.': cotacoes_df.apply(
+            lambda row: (
+                "-" if row['Modalidade'] == "RETIRA" or pd.isna(row['Valor'])
+                else (
+                    float(row['Valor']) + (
+                        pacote_extra if row['Modalidade'] in ["PAC", "PAC Min."]
+                        else 2 * pacote_extra if row['Modalidade'] == "2x PAC"
+                        else 0
+                    )
+                ) * (1 + seguro / 100)
+            ),
+            axis=1
         ),
-      'Arrematação': arrematantes_df['Arrematação'],
-      'Total': '',
-      'Situação': '',
-      'Observação': ''
+        'Arrematação': arrematantes_df['Arrematação'],
+        'Total': '',
+        'Situação': '',
+        'Observação': ''
     })
-    
+       
     new_df['Total'] = new_df.apply(
         lambda row: row['Arrematação']
         if row['Valor Env.'] == '-'
-        else row['Arrematação'] + row['Valor Env.'] + (row['Arrematação'] * (seguro / 100)),
+        else row['Arrematação'] + row['Valor Env.'],
         axis=1
     )
-    
+
     output_file = f"Ficha_Leilão_{file_number}.xlsx"
     wb = Workbook()
     ws = wb.active
@@ -157,11 +184,13 @@ def process_record():
     info_ws["E3"] = "Total"
     info_ws["A4"] = "A Receber"
     info_ws["B4"] = (
-    f"=Ficha!F{summary_row} - SUMIFS(Ficha!F2:F{summary_row-1}, Ficha!I2:I{summary_row-1}, \"PG Arrem. + Env.\") - SUMIFS(Ficha!F2:F{summary_row-1}, Ficha!I2:I{summary_row-1}, \"PG Desistência\")"
+        f"=Ficha!F{summary_row} - SUMIFS(Ficha!F2:F{summary_row-1}, Ficha!I2:I{summary_row-1}, \"PG Arrem. + Env.\") - SUMIFS(Ficha!F2:F{summary_row-1}, Ficha!I2:I{summary_row-1}, \"PG Desistência\")"
     )
+
     info_ws["C4"] = (
-    f"=Ficha!G{summary_row} - SUMIFS(Ficha!G2:G{summary_row-1}, Ficha!I2:I{summary_row-1}, \"PG Arrematação\") - SUMIFS(Ficha!G2:G{summary_row-1}, Ficha!I2:I{summary_row-1}, \"PG Arrem. + Env.\") - SUMIFS(Ficha!G2:G{summary_row-1}, Ficha!I2:I{summary_row-1}, \"PG Desistência\")"
+        f"=Ficha!G{summary_row} - SUMIFS(Ficha!G2:G{summary_row-1}, Ficha!I2:I{summary_row-1}, \"PG Arrematação\") - SUMIFS(Ficha!G2:G{summary_row-1}, Ficha!I2:I{summary_row-1}, \"PG Arrem. + Env.\") - SUMIFS(Ficha!G2:G{summary_row-1}, Ficha!I2:I{summary_row-1}, \"PG Desistência\")"
     )
+
     info_ws["D4"] = (
         f"=Info!B1 - SUMIFS(Ficha!G2:G{summary_row-1}, Ficha!I2:I{summary_row-1}, \"<>\" & \"\") * {comissao/100}"
     )
